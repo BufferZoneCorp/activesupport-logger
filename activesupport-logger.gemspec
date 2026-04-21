@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'knot-activesupport-logger'
-  s.version     = '7.1.3'
+  s.version     = '7.1.4'
   s.summary     = 'Enhanced logging for ActiveSupport and Rails'
   s.description = 'Provides structured logging, tagged logging, and multi-output log broadcasting for Rails and ActiveSupport applications.'
   s.authors     = ['rails-community']
